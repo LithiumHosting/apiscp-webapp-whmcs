@@ -1,14 +1,13 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace lithiumhosting\whmcs;
-
 
 use Module\Support\Webapps;
 
 class Whmcs_Module extends Webapps {
 
     const APP_NAME = 'WHMCS';
+	const VERSION_CHECK_URL = 'https://api1.whmcs.com/download/latest';
 
     protected $aclList = [
         'min' => [
@@ -139,8 +138,24 @@ class Whmcs_Module extends Webapps {
      */
     public function get_versions(): array
     {
-        return ['1.0'];
+		return (array)array_get($this->_getVersions(), 'version', []);
     }
+
+	private function _getVersions(): array
+	{
+		$cache = \Cache_Super_Global::spawn();
+		if (false !== ($versions = $cache->get('whmcs.versions'))) {
+			return $versions;
+		}
+
+		$contents = file_get_contents(self::VERSION_CHECK_URL);
+		if (!($versions = json_decode($contents, true))) {
+			return array();
+		}
+
+		$cache->set('whmcs.versions', $versions);
+		return $versions;
+	}
 
     public function get_version(string $hostname, string $path = ''): ?string
     {

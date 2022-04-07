@@ -18,7 +18,7 @@ namespace lithiumhosting\whmcs;
 
 use Module\Support\Webapps\App\Type\Unknown\Handler as Unknown;
 
-class Whmcs extends Unknown {
+class Handler extends Unknown {
 
     const NAME                  = 'WHMCS';
     const ADMIN_PATH            = '/admin';
