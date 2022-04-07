@@ -13,7 +13,7 @@ Edit config/custom/boot.php, create if not exists:
 
 ```php
 <?php
-	\a23r::registerModule('liwhmcs', \lithiumhosting\whmcs\Whmcs_Module::class);
+	\a23r::registerModule('whmcs', \lithiumhosting\whmcs\Whmcs_Module::class);
 	\Module\Support\Webapps::registerApplication('whmcs', \lithiumhosting\whmcs\Handler::class);
 ```
 
