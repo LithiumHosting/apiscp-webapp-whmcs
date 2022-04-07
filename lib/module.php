@@ -63,28 +63,17 @@
 			if (!$this->parseInstallOptions($opts, $hostname, $path)) {
 				return false;
 			}
-
-			$docroot = $this->getDocumentRoot($hostname, $path);
-			$contents = '1.0';
-
-			if (!empty($opts['say'])) {
-				// in module API call, enabled by specifying ['hello' => true] in $opts
-				$contents .= ' ' . $this->hello();
+			$version = $opts['version'];
+			$release = $this->_getReleaseData()[$version];
+			if (!($url = array_get($release, 'url'))) {
+				return error("Failed to fetch install URL");
 			}
 
-			$oldex = \Error_Reporter::exception_upgrade(\Error_Reporter::E_ERROR);
-			$success = false;
-			try {
-				$success = $this->file_put_file_contents($docroot . '/foo', $contents);
-				// set Web App meta data, used for inference as to what app is installed here
-				$this->initializeMeta($docroot, $opts);
-			} finally {
-				// Restore ER exception promotion
-				\Error_Reporter::exception_upgrade($oldex);
-				if (!$success) {
-					return false;
-				}
+			if (!$this->download($url, $this->getDocumentRoot($hostname, $path), true)) {
+				return false;
 			}
+
+			// create database, modify config, etc
 
 			// Apply Fortification, useful with PHP applications which run under a different UID
 			// see Fortification.md
@@ -131,10 +120,15 @@
 		 */
 		public function get_versions(): array
 		{
-			return (array)array_get($this->_getVersions(), 'version', []);
+			return array_keys($this->_getReleaseData());
 		}
 
-		private function _getVersions(): array
+		/**
+		 * Retrieve WHMCS release data from API
+		 *
+		 * @return array
+		 */
+		private function _getReleaseData(): array
 		{
 			$cache = \Cache_Super_Global::spawn();
 			if (false !== ($versions = $cache->get('whmcs.versions'))) {
@@ -146,7 +140,7 @@
 				return array();
 			}
 
-			$cache->set('whmcs.versions', $versions);
+			$cache->set('whmcs.versions', $versions = [$versions['version'] => $versions]);
 
 			return $versions;
 		}
