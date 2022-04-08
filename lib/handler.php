@@ -1,20 +1,6 @@
 <?php declare(strict_types=1);
 
-	/**
-	 * Copyright (C) Lithium Hosting, llc - All Rights Reserved.
-	 *
-	 * Unauthorized copying of this file, via any medium, is
-	 * strictly prohibited without consent. Any dissemination of
-	 * material herein is prohibited.
-	 *
-	 * For licensing inquiries email <tsiedsma@lithiumhosting.com>
-	 *
-	 * Written by Troy Siedsma <tsiedsma@lithiumhosting.com>, December 2020
-	 */
-
-
 	namespace lithiumhosting\whmcs;
-
 
 	use Module\Support\Webapps\App\Type\Unknown\Handler as Unknown;
 
@@ -41,17 +27,7 @@
 
 		public function hasInstall(): bool
 		{
-			return false;
-		}
-
-		/**
-		 * Get available versions
-		 *
-		 * @return array|string[]
-		 */
-		public function getVersions(): array
-		{
-			return ['1.0'];
+			return true;
 		}
 
 		/**
@@ -89,7 +65,7 @@
 		 */
 		public function getClassMapping(): string
 		{
-			return 'liwhmcs';
+			return 'whmcs';
 		}
 
 		public function handle(array $params): bool
