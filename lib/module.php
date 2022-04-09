@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace lithiumhosting\whmcs;
@@ -92,7 +93,7 @@ class Whmcs_Module extends Webapps
 			return error("Failed to fetch install URL");
 		}
 
-		if ($this->download($url, $docroot, true)) {
+		if ( ! $this->download($url, $docroot, true)) {
 			return false;
 		}
 
