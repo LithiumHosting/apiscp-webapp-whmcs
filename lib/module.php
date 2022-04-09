@@ -43,7 +43,7 @@ class Whmcs_Module extends Webapps
 			$mixed = $this->getDocumentRoot($mixed, $path);
 		}
 
-		return file_exists($this->domain_fs_path($mixed).'/vendor/whmcs/whmcs-foundation/lib/License.php');
+		return file_exists($this->domain_fs_path($mixed) . '/vendor/whmcs/whmcs-foundation/lib/License.php');
 	}
 
 	/**
@@ -58,11 +58,14 @@ class Whmcs_Module extends Webapps
 	public function install(string $hostname, string $path = '', array $opts = []): bool
 	{
 		if ( ! $this->mysql_enabled()) {
-			return error('%(what)s must be enabled to install %(app)s',
-				['what' => 'MySQL', 'app' => static::APP_NAME]);
+			return error(
+				'%(what)s must be enabled to install %(app)s',
+				['what' => 'MySQL', 'app' => static::APP_NAME]
+			);
 		}
 
 		$docroot = $this->getDocumentRoot($hostname, $path);
+
 		if ( ! $docroot) {
 			return error("failed to detect document root for `%s'", $hostname);
 		}
@@ -89,12 +92,19 @@ class Whmcs_Module extends Webapps
 		$version = $opts['version'];
 		$license = $opts['license_key'];
 		$release = $this->_getReleaseData()[$version];
+
 		if ( ! ($url = array_get($release, 'url'))) {
 			return error("Failed to fetch install URL");
 		}
 
 		if ( ! $this->download($url, $docroot, true)) {
 			return false;
+		}
+
+		$cronjob_command = 'php -q ' . $docroot . '/crons/cron.php';
+
+		if ( ! $this->crontab_exists('*/5', '*', '*', '*', '*', $cronjob_command, $this->getDocrootUser($docroot))) {
+			$this->crontab_add_job('*/5', '*', '*', '*', '*', $cronjob_command, $this->getDocrootUser($docroot));
 		}
 
 		$this->initializeMeta($docroot, $opts);
@@ -166,7 +176,7 @@ class Whmcs_Module extends Webapps
 
 	public function get_version(string $hostname, string $path = ''): ?string
 	{
-		$path = $this->getDocumentRoot($hostname, $path).'/foo';
+		$path = $this->getDocumentRoot($hostname, $path) . '/foo';
 
 		// install file missing?
 		if ( ! $this->file_exists($this->domain_fs_path($path))) {

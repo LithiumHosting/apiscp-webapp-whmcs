@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace lithiumhosting\whmcs;
 
@@ -31,7 +30,7 @@ class Handler extends Unknown
 		return true;
 	}
 
-	public function hasUpdate()
+	public function hasUpdate(): bool
 	{
 		return false;
 	}
@@ -39,8 +38,8 @@ class Handler extends Unknown
 	/**
 	 * Wrapper to show API calls
 	 *
-	 * @param  string  $method
-	 * @param  null  $args
+	 * @param string $method
+	 * @param null   $args
 	 *
 	 * @return bool
 	 */

@@ -1,6 +1,6 @@
 # ApisCP WHMCS application
 
-This is a web application for [ApisCP](https://apiscp.com).  
+This is a web application for [ApisCP](https://apiscp.com).
 
 ## Installation
 
@@ -24,6 +24,17 @@ systemctl restart apiscp
 ```
 
 Voila!
+
+## Testing
+To install WHMCS to `whmcs.domain.test` for the domain `domain.test` run the following:
+```bash
+cpcmd -d domain.test whmcs:install whmcs.domain.test '' '[license_key:DEV123XYZ]'
+```
+Or to install WHMCS to a subfolder of `whmcs` on the domain `domain.test` run the following:
+```bash
+cpcmd -d domain.test whmcs:install domain.test 'whmcs' '[license_key:DEV123XYZ]'
+```
+WHMCS installation requires a License Key, be sure to pass it as license_key.
 
 ## Learning more
 All third-party documentation is available via [docs.apiscp.com](https://docs.apiscp.com/admin/webapps/Custom/).
