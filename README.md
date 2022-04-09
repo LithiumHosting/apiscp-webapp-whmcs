@@ -36,5 +36,10 @@ cpcmd -d domain.test whmcs:install domain.test 'whmcs' '[license_key:DEV123XYZ]'
 ```
 WHMCS installation requires a License Key, be sure to pass it as license_key.
 
+```bash
+cpcmd -d domain.test whmcs:uninstall domain.test 'whmcs' all
+```
+passing "all" as the 3rd parameter will remove the database and files
+
 ## Learning more
 All third-party documentation is available via [docs.apiscp.com](https://docs.apiscp.com/admin/webapps/Custom/).

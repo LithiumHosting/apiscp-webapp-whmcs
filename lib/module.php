@@ -12,6 +12,10 @@ class Whmcs_Module extends Webapps
 
 	const APP_NAME = 'WHMCS';
 	const VERSION_CHECK_URL = 'https://api1.whmcs.com/download/latest';
+	const WHMCS_USERNAME = 'admin';
+
+	public $whmcs_username;
+	public $whmcs_password;
 
 	protected $aclList = [
 		'min' => [
@@ -86,8 +90,8 @@ class Whmcs_Module extends Webapps
 			return error('A WHMCS License Key is required.');
 		}
 
-//		$prefs = MetaManager::factory($this->getAuthContext());
-//		$prefs->merge($docroot, ['license_key' => $opts['license_key']]);
+		$this->whmcs_username = $opts['user'] = self::WHMCS_USERNAME;
+		$this->whmcs_password = $opts['password'] = \Opcenter\Auth\Password::generate(10);
 
 		$version = $opts['version'];
 		$license = $opts['license_key'];
@@ -108,18 +112,15 @@ class Whmcs_Module extends Webapps
 			return false;
 		}
 
-		$this->set_configuration($hostname, $path, $this->buildWhmcsConfig($opts, $db));
-
-		if ($this->run_install()) {
+//		$this->set_configuration($hostname, $path, $this->buildWhmcsConfig($opts, $db));
+		$install = $ret = $this->run_install($docroot, $opts, $db);
+		if ($install['success']) {
 			$this->file_delete("${docroot}/install", true);
 		}
 
 		$this->crontab_add_job('*/5', '*', '*', '*', '*', 'php -q ' . $docroot . '/crons/cron.php', $this->getDocrootUser($docroot));
 
 		$this->initializeMeta($docroot, $opts);
-//		if (!file_exists($this->domain_fs_path() . "/${docroot}/.htaccess")) {
-//			$this->file_touch("${docroot}/.htaccess");
-//		}
 
 		// create database, modify config, etc
 
@@ -209,38 +210,24 @@ class Whmcs_Module extends Webapps
 		return parent::getModule();
 	}
 
-	private function buildWhmcsConfig($opts, $db)
+	private function run_install($docroot, $opts, $db)
 	{
-		$cc_hash = exec('openssl rand -base64 128|tr -d "\n\/+="|cut -c 1-64');
+		$json = json_encode([
+			'admin'         => [
+				'username' => $this->whmcs_username,
+				'password' => $this->whmcs_password,
+			],
+			'configuration' => [
+				'license'            => $opts['license_key'],
+				'db_host'            => $db->hostname,
+				'db_username'        => $db->username,
+				'db_password'        => $db->password,
+				'db_name'            => $db->database,
+				'cc_encryption_hash' => \Opcenter\Auth\Password::generate(64),
+				'mysql_charset'      => 'utf8',
+			],
+		]);
 
-		return "<?php
-\$license = '{$opts['license_key']}';
-\$db_host = '{$db->hostname}';
-\$db_username = '{$db->username}';
-\$db_password = '{$db->password}';
-\$db_name = '{$db->database}';
-\$cc_encryption_hash = '{$cc_hash}';
-\$templates_compiledir = 'templates_c/';
-		";
-	}
-
-	public function set_configuration(string $hostname, string $path, $config_data)
-	{
-//		if ( ! IS_CLI) {
-//			return $this->query('whmcs_set_configuration', $hostname, $path, $config_data);
-//		}
-
-		$config = $this->getDocumentRoot($hostname, $path) . '/configuration.php';
-
-		if ( ! file_exists($this->domain_fs_path() . $config)) {
-			$this->file_rename($config . '.new', $config);
-		}
-
-		return $this->file_put_file_contents($config, $config_data);
-	}
-
-	private function run_install()
-	{
-		return true;
+		return $this->pman_run('echo $(echo $CONF) | /usr/bin/php -f %(path)s/install/bin/installer.php – -i -n -c', ['path' => $docroot], ['CONF' => $json]);
 	}
 }
