@@ -101,11 +101,20 @@ class Whmcs_Module extends Webapps
 			return false;
 		}
 
-		$cronjob_command = 'php -q ' . $docroot . '/crons/cron.php';
+		$db = \Module\Support\Webapps\DatabaseGenerator::mysql($this->getAuthContext(), $hostname);
+		$db->connectionLimit = max($db->connectionLimit, 15);
 
-		if ( ! $this->crontab_exists('*/5', '*', '*', '*', '*', $cronjob_command, $this->getDocrootUser($docroot))) {
-			$this->crontab_add_job('*/5', '*', '*', '*', '*', $cronjob_command, $this->getDocrootUser($docroot));
+		if ( ! $db->create()) {
+			return false;
 		}
+
+		$this->set_configuration($hostname, $path, $this->buildWhmcsConfig($opts, $db));
+
+		if ($this->run_install()) {
+			$this->file_delete("${docroot}/install", true);
+		}
+
+		$this->crontab_add_job('*/5', '*', '*', '*', '*', 'php -q ' . $docroot . '/crons/cron.php', $this->getDocrootUser($docroot));
 
 		$this->initializeMeta($docroot, $opts);
 //		if (!file_exists($this->domain_fs_path() . "/${docroot}/.htaccess")) {
@@ -137,6 +146,8 @@ class Whmcs_Module extends Webapps
 	{
 		// parent does a good job of removing all traces, you can do any last minute touch-ups, such as
 		// removing Redis services or changing DNS after uninstallation
+		$this->crontab_delete_job('*/5', '*', '*', '*', '*', 'php -q ' . $this->getDocumentRoot($hostname, $path) . '/crons/cron.php');
+
 		return parent::uninstall($hostname, $path, $delete);
 	}
 
@@ -196,5 +207,40 @@ class Whmcs_Module extends Webapps
 	{
 		// fallback Web App handler name when "type" isn't specified in install
 		return parent::getModule();
+	}
+
+	private function buildWhmcsConfig($opts, $db)
+	{
+		$cc_hash = exec('openssl rand -base64 128|tr -d "\n\/+="|cut -c 1-64');
+
+		return "<?php
+\$license = '{$opts['license_key']}';
+\$db_host = '{$db->hostname}';
+\$db_username = '{$db->username}';
+\$db_password = '{$db->password}';
+\$db_name = '{$db->database}';
+\$cc_encryption_hash = '{$cc_hash}';
+\$templates_compiledir = 'templates_c/';
+		";
+	}
+
+	public function set_configuration(string $hostname, string $path, $config_data)
+	{
+//		if ( ! IS_CLI) {
+//			return $this->query('whmcs_set_configuration', $hostname, $path, $config_data);
+//		}
+
+		$config = $this->getDocumentRoot($hostname, $path) . '/configuration.php';
+
+		if ( ! file_exists($this->domain_fs_path() . $config)) {
+			$this->file_rename($config . '.new', $config);
+		}
+
+		return $this->file_put_file_contents($config, $config_data);
+	}
+
+	private function run_install()
+	{
+		return true;
 	}
 }
