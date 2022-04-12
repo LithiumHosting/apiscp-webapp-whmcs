@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace lithiumhosting\whmcs;
 
 use Module\Support\Webapps;
+use Module\Support\Webapps\DatabaseGenerator;
 use Module\Support\Webapps\MetaManager;
 
 class Whmcs_Module extends Webapps
@@ -105,7 +106,7 @@ class Whmcs_Module extends Webapps
 			return false;
 		}
 
-		$db = \Module\Support\Webapps\DatabaseGenerator::mysql($this->getAuthContext(), $hostname);
+		$db = DatabaseGenerator::mysql($this->getAuthContext(), $hostname);
 		$db->connectionLimit = max($db->connectionLimit, 15);
 
 		if ( ! $db->create()) {
@@ -113,12 +114,14 @@ class Whmcs_Module extends Webapps
 		}
 
 //		$this->set_configuration($hostname, $path, $this->buildWhmcsConfig($opts, $db));
-		$install = $ret = $this->run_install($docroot, $opts, $db);
+		$install = $this->run_install($docroot, $opts, $db);
 		if ($install['success']) {
 			$this->file_delete("${docroot}/install", true);
 		}
-
-		$this->crontab_add_job('*/5', '*', '*', '*', '*', 'php -q ' . $docroot . '/crons/cron.php', $this->getDocrootUser($docroot));
+		$owner = $this->getDocrootUser($docroot);
+		if ( ! $this->crontab_match_job(preg_quote(' ' . $docroot, '!'), $owner)) {
+			$this->crontab_add_job('*/5', '*', '*', '*', '*', 'php -q ' . $docroot . '/crons/cron.php', $owner);
+		}
 
 		$this->initializeMeta($docroot, $opts);
 
@@ -126,13 +129,44 @@ class Whmcs_Module extends Webapps
 
 		// Apply Fortification, useful with PHP applications which run under a different UID
 		// see Fortification.md
-		$this->fortify($hostname, $path, 'max');
+		$this->fortify($hostname, $path);
 
 		// Send notification email
 		$this->notifyInstalled($hostname, $path, $opts);
 
 		return true;
 	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function db_config(string $hostname, string $path = '')
+	{
+		$approot = $this->getAppRoot($hostname, $path);
+		if ( ! $this->file_exists($approot . '/configuration.php')) {
+			return false;
+		}
+
+
+		$code = 'ob_start(); include("./configuration.php"); file_put_contents("php://fd/3", serialize(["db" => $db_name, "user" => $db_username, "host" => $db_host, "prefix" => "", "password" =>  $db_password])); ';
+		$cmd = 'cd %(path)s && php -d mysqli.default_socket=%(socket)s -r %(code)s 3>&1-';
+		$ret = $this->pman_run($cmd, [
+			'path'   => $approot,
+			'code'   => $code,
+			'socket' => ini_get('mysqli.default_socket')
+		]);
+
+		if ( ! $ret['success']) {
+			return error("failed to obtain %(app)s configuration for `%(approot)s': %(err)s", [
+				'app' => static::APP_NAME,
+				'approot' => $approot,
+				'err' => $ret['stderr']
+			]);
+		}
+
+		return \Util_PHP::unserialize(trim($ret['stdout']));
+	}
+
 
 	/**
 	 * Remove application
@@ -147,7 +181,8 @@ class Whmcs_Module extends Webapps
 	{
 		// parent does a good job of removing all traces, you can do any last minute touch-ups, such as
 		// removing Redis services or changing DNS after uninstallation
-		$this->crontab_delete_job('*/5', '*', '*', '*', '*', 'php -q ' . $this->getDocumentRoot($hostname, $path) . '/crons/cron.php');
+		$approot = $this->getAppRoot($hostname, $path);
+		$this->removeJobs($approot);
 
 		return parent::uninstall($hostname, $path, $delete);
 	}
@@ -228,6 +263,9 @@ class Whmcs_Module extends Webapps
 			],
 		]);
 
-		return $this->pman_run('echo $(echo $CONF) | /usr/bin/php -f %(path)s/install/bin/installer.php – -i -n -c', ['path' => $docroot], ['CONF' => $json]);
+		return $this->pman_run('echo %(conf)s | /usr/bin/php -f %(path)s/install/bin/installer.php -- -i -n -c', [
+			'path' => $docroot,
+			'conf' => $json
+		]);
 	}
 }
