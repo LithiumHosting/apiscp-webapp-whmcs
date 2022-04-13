@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace lithiumhosting\whmcs;
@@ -15,6 +16,7 @@ class Handler extends Unknown
 
 	const FEAT_ALLOW_SSL = true;
 	const FEAT_RECOVERY = false;
+	const FEAT_GIT = false;
 
 	/**
 	 * Display application
@@ -22,11 +24,6 @@ class Handler extends Unknown
 	 * @return bool
 	 */
 	public function display(): bool
-	{
-		return true;
-	}
-
-	public function hasInstall(): bool
 	{
 		return true;
 	}
