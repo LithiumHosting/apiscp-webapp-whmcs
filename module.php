@@ -1,17 +1,15 @@
 <?php
 
-declare(strict_types=1);
-
-namespace lithiumhosting\whmcs;
-
 use Module\Support\Webapps;
 use Module\Support\Webapps\DatabaseGenerator;
 use Module\Support\Webapps\MetaManager;
+use LithiumHosting\WebApps\Whmcs\Handler;
 
 class Whmcs_Module extends Webapps
 {
 
-	const APP_NAME = 'WHMCS';
+	const APP_NAME = Handler::NAME;
+//	const VERSION_CHECK_URL = 'https://api1.whmcs.com/download/latest';
 	const VERSION_CHECK_URL = 'https://download.whmcs.com/assets/scripts/get-downloads.php';
 	const DOWNLOAD_URL = 'https://s3.amazonaws.com/releases.whmcs.com/v2/pkgs/whmcs-{VERSION}-release.1.zip';
 
@@ -106,7 +104,7 @@ class Whmcs_Module extends Webapps
 			return error("Failed to fetch install URL");
 		}
 
-		if (! $this->download($url, $docroot, true)) {
+		if (! $this->download($url, $docroot)) {
 			return false;
 		}
 
@@ -122,16 +120,14 @@ class Whmcs_Module extends Webapps
 			$this->file_delete("${docroot}/install", true);
 		}
 
-		$owner = $this->getDocrootUser($docroot);
-		if (! $this->crontab_match_job(preg_quote(' '.$docroot, '!'), $owner)) {
-			$this->crontab_add_job('*/5', '*', '*', '*', '*', 'php -q '.$docroot.'/crons/cron.php', $owner);
-		}
+		$this->crontab_add_job('*/5', '*', '*', '*', '*', 'php -q '.$docroot.'/crons/cron.php',
+			$this->getDocrootUser($docroot));
 
 		$this->initializeMeta($docroot, $opts);
 
 		// Apply Fortification, useful with PHP applications which run under a different UID
 		// see Fortification.md
-		$this->fortify($hostname, $path);
+		$this->fortify($hostname, $path, 'max');
 
 		// Send notification email
 		$this->notifyInstalled($hostname, $path, $opts);
@@ -168,7 +164,6 @@ class Whmcs_Module extends Webapps
 
 		return \Util_PHP::unserialize(trim($ret['stdout']));
 	}
-
 
 	/**
 	 * Remove application
@@ -242,7 +237,6 @@ class Whmcs_Module extends Webapps
 	}
 
 	// Not implemented.
-
 	public function get_version(string $hostname, string $path = ''): ?string
 	{
 		$path = $this->getDocumentRoot($hostname, $path).'/foo';

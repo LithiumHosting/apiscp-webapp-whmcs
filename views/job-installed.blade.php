@@ -9,7 +9,7 @@
 {{ $appname }} has been successfully installed on {{ $uri }}!
 
 ## Admin panel
-You can access the panel at [{{$proto}}{{$uri}}/wp-admin]({{$proto}}{{$uri}}/admin) using the following information:
+You can access the panel at [{{$proto}}{{$uri}}{{\LithiumHosting\WebApps\Whmcs\Handler::ADMIN_PATH}}]({{$proto}}{{$uri}}{{\LithiumHosting\WebApps\Whmcs\Handler::ADMIN_PATH}}) using the following information:
 
 **Login**: <code>{{ $whmcs_username }}</code><br/>
 **Password**: <code>{{ str_replace('@', '\\@', $whmcs_password) }}</code>

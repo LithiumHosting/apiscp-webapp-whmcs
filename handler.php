@@ -1,8 +1,5 @@
 <?php
-
-declare(strict_types=1);
-
-namespace lithiumhosting\whmcs;
+namespace LithiumHosting\WebApps\Whmcs;
 
 use Module\Support\Webapps\App\Type\Unknown\Handler as Unknown;
 

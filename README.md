@@ -6,6 +6,7 @@ This is a web application for [ApisCP](https://apiscp.com).
 
 ```bash
 cd /usr/local/apnscp
+mkdir -p config/custom/webapps
 git clone https://github.com/LithiumHosting/apiscp-webapp-whmcs config/custom/webapps/whmcs
 ./composer dump-autoload -o
 ```
